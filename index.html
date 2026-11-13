@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Bot Web Chat (Lokalhost)</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0e1621;
+            --sidebar-bg: #17212b;
+            --chat-bg: #0e1621;
+            --panel-bg: #212f3d;
+            --text-main: #f5f5f5;
+            --text-secondary: #8696a0;
+            --accent-color: #2ea6ff;
+            --accent-hover: #1b8ad8;
+            --outgoing-msg: #2b5278;
+            --incoming-msg: #182533;
+            --border-color: #0f212e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Asosiy konteyner */
+        .app-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            max-width: 1600px;
+            margin: 0 auto;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Chap Panel: Chatlar ro'yxati */
+        .sidebar {
+            width: 360px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background-color: var(--sidebar-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .bot-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #2ea6ff, #0077b5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            background-color: #22c55e;
+            border: 2px solid var(--sidebar-bg);
+            border-radius: 50%;
+            position: absolute;
+            bottom: 0;
+            right: 0;
+        }
+
+        .bot-info h2 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .bot-info p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-actions {
+            padding: 10px 15px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-box {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px 8px 35px;
+            background-color: var(--bg-color);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .action-btn {
+            background-color: var(--bg-color);
+            border: none;
+            color: var(--text-secondary);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .action-btn:hover {
+            background-color: var(--panel-bg);
+            color: white;
+        }
+
+        .chat-list {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .chat-item {
+            display: flex;
+            padding: 12px 15px;
+            gap: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .chat-item:hover {
+            background-color: rgba(255, 255, 255, 0.04);
+        }
+
+        .chat-item.active {
+            background-color: #2b5278 !important;
+        }
+
+        .chat-item-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #3b5998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .chat-item-info {
+            flex-grow: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .chat-item-top {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .chat-item-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-item-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .chat-item-message {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* O'ng Panel: Chat maydoni */
+        .chat-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--chat-bg);
+            background-image: radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .chat-header {
+            height: 60px;
+            background-color: var(--sidebar-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .chat-header-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-header-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #2ea6ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+
+        .chat-header-details h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .chat-header-details p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .chat-header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .messages-container {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            max-width: 65%;
+            padding: 8px 12px;
+            border-radius: 12px;
+            position: relative;
+            font-size: 0.92rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .message.incoming {
+            background-color: var(--incoming-msg);
+            align-self: flex-start;
+            border-top-left-radius: 4px;
+        }
+
+        .message.outgoing {
+            background-color: var(--outgoing-msg);
+            align-self: flex-end;
+            border-top-right-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 0.68rem;
+            color: rgba(255, 255, 255, 0.6);
+            float: right;
+            margin-left: 10px;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        /* Xabar yuborish paneli */
+        .chat-input-panel {
+            padding: 12px 20px;
+            background-color: var(--sidebar-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .input-tool-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .input-tool-btn:hover {
+            color: white;
+        }
+
+        .message-input {
+            flex-grow: 1;
+            background-color: var(--bg-color);
+            border: none;
+            border-radius: 20px;
+            padding: 10px 16px;
+            color: white;
+            font-size: 0.95rem;
+            outline: none;
+            resize: none;
+            max-height: 120px;
+        }
+
+        .send-btn {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .send-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 20px;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            color: #2b5278;
+        }
+
+        .config-banner {
+            background: rgba(46, 166, 255, 0.1);
+            border-bottom: 1px solid rgba(46, 166, 255, 0.2);
+            padding: 8px 15px;
+            font-size: 0.82rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .config-banner button {
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--sidebar-bg);
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-content h3 {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: white;
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-actions button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-cancel {
+            background: #334155;
+            color: white;
+        }
+
+        .btn-save {
+            background: var(--accent-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- Chap panel: Chatlar ro'yxati -->
+    <div class="sidebar">
+        <div class="config-banner">
+            <span id="botStatusText"><i class="fas fa-spinner fa-spin"></i> Bot ulanmoqda...</span>
+            <button onclick="openSettings()">Sozlama</button>
+        </div>
+        <div class="sidebar-header">
+            <div class="bot-avatar">
+                <i class="fas fa-robot"></i>
+                <div class="status-dot" id="connectionDot" style="background-color: #f59e0b;"></div>
+            </div>
+            <div class="bot-info">
+                <h2 id="botName">Telegram Bot</h2>
+                <p id="botUsername">@LokalhostBot</p>
+            </div>
+        </div>
+        <div class="sidebar-actions">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchChatInput" placeholder="Chatlarni qidirish..." oninput="filterChats()">
+            </div>
+            <button class="action-btn" title="Yangi chat qo'shish" onclick="openNewChatModal()"><i class="fas fa-user-plus"></i></button>
+            <button class="action-btn" title="Yangilash" onclick="fetchUpdates()"><i class="fas fa-sync-alt"></i></button>
+        </div>
+        <div class="chat-list" id="chatList">
+            <!-- Chatlar JS orqali to'ldiriladi -->
+        </div>
+    </div>
+
+    <!-- O'ng panel: Chat oynasi -->
+    <div class="chat-area" id="chatArea">
+        <div class="empty-state" id="emptyState">
+            <i class="fas fa-comments"></i>
+            <h2>Muloqotni boshlash uchun chat tanlang</h2>
+            <p>Foydalanuvchilar botingizga yozgan xabarlari avtomatik shu yerda ko'rinadi va saqlanadi.</p>
+        </div>
+
+        <div id="activeChatContent" style="display: none; height: 100%; flex-direction: column;">
+            <div class="chat-header">
+                <div class="chat-header-user">
+                    <div class="chat-header-avatar" id="activeAvatar">U</div>
+                    <div class="chat-header-details">
+                        <h3 id="activeChatName">Foydalanuvchi</h3>
+                        <p id="activeChatId">ID: 0000000</p>
+                    </div>
+                </div>
+                <div class="chat-header-actions">
+                    <button class="action-btn" title="Xabarlarni tozalash" onclick="clearActiveChatMessages()"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messagesContainer">
+                <!-- Xabarlar -->
+            </div>
+
+            <div class="chat-input-panel">
+                <button class="input-tool-btn" title="Fayl qo'shish"><i class="fas fa-paperclip"></i></button>
+                <textarea class="message-input" id="messageInput" placeholder="Xabar yozing..." rows="1" onkeydown="handleKeyDown(event)"></textarea>
+                <button class="input-tool-btn" title="Emoji"><i class="fas fa-smile"></i></button>
+                <button class="send-btn" title="Yuborish" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Yangi chat qo'shish modali -->
+<div class="modal" id="newChatModal">
+    <div class="modal-content">
+        <h3>Yangi Chat (Foydalanuvchi ID) qo'shish</h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">Foydalanuvchining Telegram Chat ID raqamini kiriting (masalan: 123456789):</p>
+        <input type="number" id="manualChatId" placeholder="Chat ID">
+        <input type="text" id="manualChatName" placeholder="Foydalanuvchi ismi (ixtiyoriy)">
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeNewChatModal()">Bekor qilish</button>
+            <button class="btn-save" onclick="addManualChat()">Qo'shish</button>
+        </div>
+    </div>
+</div>
+
+<!-- Token sozlamalari modali -->
+<div class="modal" id="settingsModal">
+    <div class="modal-content">
+        <h3>Bot Token Sozlamasi</h3>
+        <input type="text" id="botTokenInput" placeholder="Bot Token">
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeSettings()">Bekor qilish</button>
+            <button class="btn-save" onclick="saveSettings()">Saqlash va Ulanish</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Berilgan Bot Token va LocalStorage boshqaruvi
+    let BOT_TOKEN = localStorage.getItem('tg_bot_token') || "9297431719:AAFBmzXpLSjj6tSx4vbK7_IgS0N5EVBl8Qg";
+    let chats = JSON.parse(localStorage.getItem('tg_chats')) || {};
+    let messages = JSON.parse(localStorage.getItem('tg_messages')) || {};
+    let activeChatId = null;
+    let lastUpdateId = parseInt(localStorage.getItem('tg_last_update_id'), 10) || 0;
+
+    // Ishga tushganda
+    window.onload = function() {
+        document.getElementById('botTokenInput').value = BOT_TOKEN;
+        initBot();
+        renderChats();
+
+        // Har 3 sekundda Telegram API'dan yangi xabarlarni tekshirish (Polling)
+        setInterval(fetchUpdates, 3000);
+    };
+
+    // Bot haqida ma'lumot olish
+    async function initBot() {
+        const statusText = document.getElementById('botStatusText');
+        const connectionDot = document.getElementById('connectionDot');
+        try {
+            const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`);
+            const data = await response.json();
+            if (data.ok) {
+                document.getElementById('botName').innerText = data.result.first_name;
+                document.getElementById('botUsername').innerText = '@' + data.result.username;
+                statusText.innerHTML = '<i class="fas fa-check-circle"></i> Onlayn (Lokalhost)';
+                connectionDot.style.backgroundColor = '#22c55e';
+            } else {
+                statusText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Token xato!';
+                connectionDot.style.backgroundColor = '#ef4444';
+            }
+        } catch (err) {
+            statusText.innerHTML = '<i class="fas fa-wifi"></i> Tarmoq xatosi (Offline)';
+            connectionDot.style.backgroundColor = '#f59e0b';
+        }
+    }
+
+    // Telegram'dan yangi xabarlarni olish (getUpdates)
+    async function fetchUpdates() {
+        try {
+            const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=1`);
+            const data = await response.json();
+            if (data.ok && data.result.length > 0) {
+                data.result.forEach(update => {
+                    lastUpdateId = update.update_id;
+                    localStorage.setItem('tg_last_update_id', lastUpdateId);
+
+                    let msg = update.message || update.edited_message;
+                    if (msg && msg.from) {
+                        const chatId = String(msg.chat.id);
+                        const firstName = msg.from.first_name || 'Foydalanuvchi';
+                        const text = msg.text || '[Media yoki boshqa turdagi xabar]';
+                        const time = new Date(msg.date * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                        // Chat mavjud bo'lmasa yaratamiz
+                        if (!chats[chatId]) {
+                            chats[chatId] = {
+                                id: chatId,
+                                name: firstName + (msg.from.last_name ? ' ' + msg.from.last_name : ''),
+                                lastMessage: text,
+                                time: time
+                            };
+                        } else {
+                            chats[chatId].lastMessage = text;
+                            chats[chatId].time = time;
+                        }
+
+                        // Xabarni saqlash
+                        if (!messages[chatId]) {
+                            messages[chatId] = [];
+                        }
+                        messages[chatId].push({
+                            sender: 'incoming',
+                            text: text,
+                            time: time
+                        });
+
+                        saveData();
+                        renderChats(document.getElementById('searchChatInput').value);
+                        if (activeChatId === chatId) {
+                            renderMessages(chatId);
+                        }
+                    }
+                });
+            }
+        } catch (err) {
+            console.error("Polling xatosi:", err);
+        }
+    }
+
+    // Chatlar ro'yxatini chiqarish
+    function renderChats(filter = '') {
+        const chatListEl = document.getElementById('chatList');
+        chatListEl.innerHTML = '';
+
+        const sortedChats = Object.values(chats).sort((a, b) => {
+            return (b.time || '').localeCompare(a.time || '');
+        });
+
+        const filtered = sortedChats.filter(c => 
+            c.name.toLowerCase().includes(filter.toLowerCase()) || 
+            String(c.id).includes(filter)
+        );
+
+        if (filtered.length === 0) {
+            chatListEl.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">Chatlar topilmadi.<br>Botga Telegram orqali yozib ko'ring!</div>`;
+            return;
+        }
+
+        filtered.forEach(chat => {
+            const div = document.createElement('div');
+            div.className = `chat-item ${String(activeChatId) === String(chat.id) ? 'active' : ''}`;
+            div.onclick = () => selectChat(String(chat.id));
+
+            const initial = chat.name.charAt(0).toUpperCase();
+
+            div.innerHTML = `
+                <div class="chat-item-avatar">${escapeHtml(initial)}</div>
+                <div class="chat-item-info">
+                    <div class="chat-item-top">
+                        <span class="chat-item-name">${escapeHtml(chat.name)}</span>
+                        <span class="chat-item-time">${escapeHtml(chat.time || '')}</span>
+                    </div>
+                    <div class="chat-item-message">${escapeHtml(chat.lastMessage || 'Yangi chat')}</div>
+                </div>
+            `;
+            chatListEl.appendChild(div);
+        });
+    }
+
+    // Chatni tanlash
+    function selectChat(chatId) {
+        activeChatId = String(chatId);
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('activeChatContent').style.display = 'flex';
+
+        const chat = chats[activeChatId];
+        document.getElementById('activeChatName').innerText = chat.name;
+        document.getElementById('activeChatId').innerText = 'ID: ' + activeChatId;
+        document.getElementById('activeAvatar').innerText = chat.name.charAt(0).toUpperCase();
+
+        renderChats(document.getElementById('searchChatInput').value);
+        renderMessages(activeChatId);
+    }
+
+    // Xabarlarni chiqarish
+    function renderMessages(chatId) {
+        const container = document.getElementById('messagesContainer');
+        container.innerHTML = '';
+
+        const chatMessages = messages[chatId] || [];
+        chatMessages.forEach(msg => {
+            const div = document.createElement('div');
+            div.className = `message ${msg.sender}`;
+            div.innerHTML = `
+                ${escapeHtml(msg.text)}
+                <span class="message-time">${escapeHtml(msg.time)} <i class="fas fa-check" style="font-size:0.6rem;"></i></span>
+            `;
+            container.appendChild(div);
+        });
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // Xabar yuborish
+    async function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        if (!text || !activeChatId) return;
+
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Ekranga chiqarish
+        if (!messages[activeChatId]) {
+            messages[activeChatId] = [];
+        }
+        messages[activeChatId].push({ sender: 'outgoing', text: text, time: time });
+
+        chats[activeChatId].lastMessage = 'Siz: ' + text;
+        chats[activeChatId].time = time;
+
+        saveData();
+        renderChats(document.getElementById('searchChatInput').value);
+        renderMessages(activeChatId);
+        input.value = '';
+
+        // Telegram API orqali haqiqiy foydalanuvchiga yuborish
+        try {
+            const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: activeChatId, text: text })
+            });
+            const data = await res.json();
+            if (!data.ok) {
+                alert("Xabar yuborishda xatolik: " + data.description);
+            }
+        } catch (err) {
+            console.error("Yuborish xatosi:", err);
+            alert("Internet yoki tarmoq xatosi!");
+        }
+    }
+
+    function handleKeyDown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    }
+
+    // Qidiruv
+    function filterChats() {
+        const val = document.getElementById('searchChatInput').value;
+        renderChats(val);
+    }
+
+    // Ma'lumotlarni saqlash
+    function saveData() {
+        localStorage.setItem('tg_chats', JSON.stringify(chats));
+        localStorage.setItem('tg_messages', JSON.stringify(messages));
+    }
+
+    // Modal funksiyalari
+    function openNewChatModal() {
+        document.getElementById('newChatModal').style.display = 'flex';
+    }
+
+    function closeNewChatModal() {
+        document.getElementById('newChatModal').style.display = 'none';
+    }
+
+    function addManualChat() {
+        const id = document.getElementById('manualChatId').value.trim();
+        const name = document.getElementById('manualChatName').value.trim() || ('User ' + id);
+        if (!id) {
+            alert("Chat ID kiriting!");
+            return;
+        }
+
+        const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        chats[id] = {
+            id: id,
+            name: name,
+            lastMessage: 'Yangi suhbat',
+            time: currentTime
+        };
+        if (!messages[id]) {
+            messages[id] = [];
+        }
+        saveData();
+        closeNewChatModal();
+        selectChat(id);
+        renderChats();
+    }
+
+    function openSettings() {
+        document.getElementById('settingsModal').style.display = 'flex';
+    }
+
+    function closeSettings() {
+        document.getElementById('settingsModal').style.display = 'none';
+    }
+
+    function saveSettings() {
+        const token = document.getElementById('botTokenInput').value.trim();
+        if (!token) {
+            alert("Token kiriting!");
+            return;
+        }
+        BOT_TOKEN = token;
+        localStorage.setItem('tg_bot_token', BOT_TOKEN);
+        closeSettings();
+        initBot();
+        alert("Bot token saqlandi!");
+    }
+
+    function clearActiveChatMessages() {
+        if (!activeChatId) return;
+        if (confirm("Ushbu chatdagi barcha xabarlarni o'chirishni xohlaysizmi?")) {
+            messages[activeChatId] = [];
+            saveData();
+            renderMessages(activeChatId);
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+</script>
+</body>
+</html>
